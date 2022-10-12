@@ -1,6 +1,6 @@
 ---
 title: "Mini Data-Analysis Deliverable 1"
-output: html_document
+output: github_document
 ---
 
 # Welcome to your (maybe) first-ever data analysis project!
@@ -80,10 +80,10 @@ And that is exactly the first thing that you will do!
 
 <!-------------------------- Start your work below ---------------------------->
 
-1: CHOICE_1\_HERE\
-2: CHOICE_2\_HERE\
-3: CHOICE_3\_HERE\
-4: CHOICE_4\_HERE
+1: *apt_buildings*
+2: *cancer_sample*
+3: *steam_games*
+4: *vancouver_trees*
 
 <!----------------------------------------------------------------------------->
 
@@ -92,10 +92,36 @@ And that is exactly the first thing that you will do!
 *Hint:* This is one of those times when you should think about the cleanliness of your analysis. I added a single code chunk for you below, but do you want to use more than one? Would you like to write more comments outside of the code chunk?
 
 <!-------------------------- Start your work below ---------------------------->
+### Explore datasets to have an idea of what the data looks like ###
+```{r}
+# Explore *apt_buildings* dataset
+glimpse(apt_buildings)
+dim(apt_buildings)
+class(apt_buildings)
+```
+
 
 ```{r}
-### EXPLORE HERE ###
-steam_games
+# Explore *cancer_sample* dataset
+glimpse(cancer_sample)
+dim(cancer_sample)
+class(cancer_sample)
+```
+
+
+```{r}
+# Explore *steam_games* dataset
+glimpse(steam_games)
+dim(steam_games)
+class(steam_games)
+```
+
+
+```{r}
+# Explore *vancouver_trees* dataset
+glimpse(vancouver_trees)
+dim(vancouver_trees)
+class(vancouver_trees)
 ```
 
 <!----------------------------------------------------------------------------->
@@ -104,11 +130,16 @@ steam_games
 
 <!-------------------------- Start your work below ---------------------------->
 
+I have narrowed down my datasets to *cancer_sample* and *vancouver_trees*. *Cancer_sample* interests me as I have previously worked with cancer registry data and many of the variables are similar to the dataset I have worked with before. The *vancouver_trees* dataset also interests as it contains a mix of categorical and numerical variables, and the variables are easy to understand. 
 <!----------------------------------------------------------------------------->
 
 1.4 Time for the final decision! Going back to the beginning, it's important to have an *end goal* in mind. For example, if I had chosen the `titanic` dataset for my project, I might've wanted to explore the relationship between survival and other variables. Try to think of 1 research question that you would want to answer with each dataset. Note them down below, and make your final choice based on what seems more interesting to you!
 
 <!-------------------------- Start your work below ---------------------------->
+For the *cancer_sample* dataset, the research question I would want to answer would be: Is there a correlation between cancer radius (radius_mean) and compactness (compactness_mean)? 
+For the *vancouver_trees* dataset, the research question I would want to answer would be: Is there a correlation between species (species_name) and diameter (diameter)? 
+
+My final choice is the *vancouver_trees* dataset and research question as it is more interesting to me. 
 
 <!----------------------------------------------------------------------------->
 
@@ -137,6 +168,57 @@ If we rewind and go back to the learning objectives, you'll see that by the end 
 
 <!-------------------------- Start your work below ---------------------------->
 
+# 1. Plot the distribution of a numeric variable: I will be exploring the distribution of the numeric variable tree diameter. 
+```{r}
+ggplot(vancouver_trees, aes(diameter)) + 
+  geom_histogram(binwidth=5) + 
+  coord_cartesian(xlim = c(0,60))
+
+#I am interested in a plot of the distribution of tree diameter as I want a visual representation of the data to determine if the data is skewed and what the more common diameters are. Binwidth and coord_cartesian were used to display the histogram more clearly. 
+```
+
+# 2. Create a new variable based on other variables in your data: I will be creating a new variable for radius, the radius formula is diameter/2. 
+```{r}
+vancouver_trees %>%
+  mutate(radius = diameter/2)
+
+#The radius variable was created as it is a helpful variable to have especially if further calculations are needed. For example, calculating the circumference  (perimeter of a circle) of the tree is more convenient when the radius variable is readily available. 
+```
+
+# 3. Investigate how many missing values there are per variable. Can you find a way to plot this?
+```{r}
+#Determine the missing values per variable
+missing_values <- 
+  vancouver_trees %>% 
+  summarise(across(everything(), ~sum(is.na(.))))
+
+#Plot of missing values per variable
+missing_values %>% 
+  pivot_longer(cols=everything()) %>%
+  ggplot(aes(x=name, y=value)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  xlab("Variable") +
+  ylab("Number of Missing Values (NA)") +
+  ggtitle("Number of Missing Values per Variable in *vancouver_trees* Dataset") +
+  geom_text(aes(label=value), nudge_y = 2500)
+
+#Investigating missing values is important especially which columns have the most NA values as this can impact the analysis. From the plot, it is shown that "date_planted" has the most NA values, therefore, when doing further analysis this should be taken into consideration. 
+```
+
+# 4.  Explore the relationship between 2 variables in a plot: The 2 variables that I will be exploring are diameter (diameter) and root barrier (root_barrier). 
+```{r}
+vancouver_trees %>%
+  ggplot(aes(x=root_barrier, y = diameter)) + 
+  geom_jitter(alpha = 0.2) + 
+  scale_y_log10() + 
+  xlab("Root Barrier") + 
+  ylab ("Diameter") + 
+  ggtitle ("Root Barrier vs. Diameter")
+
+#The variables diameter and root barrier were explored to determine if there is a relationship between these two variables. There seems to be a wider range of diameters for trees without a root barrier than trees with a root barrier. Root barrier also has no missing values (as seen from the previous analysis), making it a suitable variable for analysis. Alpha and scale_y_log10 were used to display the jittered points more clearly. 
+```
+
 <!----------------------------------------------------------------------------->
 
 # Task 3: Write your research questions (5 points)
@@ -144,6 +226,10 @@ If we rewind and go back to the learning objectives, you'll see that by the end 
 So far, you have chosen a dataset and gotten familiar with it through exploring the data. Now it's time to figure out 4 research questions that you would like to answer with your data! Write the 4 questions and any additional comments at the end of this deliverable. These questions are not necessarily set in stone - TAs will review them and give you feedback; therefore, you may choose to pursue them as they are for the rest of the project, or make modifications!
 
 <!--- *****START HERE***** --->
+1: How does tree diameter vary across neighbourhoods? 
+2: Does a root barrier negatively impact the diameter of the tree? 
+3: Does a root barrier negatively impact the height of the tree? 
+4: Does a curb negatively impact the diameter of the tree? 
 
 # Task 4: Process and summarize your data (13 points)
 
@@ -173,6 +259,138 @@ Make sure it's clear what research question you are doing each operation for!
 
 <!------------------------- Start your work below ----------------------------->
 
+1: How does tree diameter vary across neighbourhoods? 
+```{r}
+#Summarizing: 2
+#Compute the number of observations for at least one of your categorical variables: How many different diameters of trees are in each neighborhood. 
+vancouver_trees %>%
+  group_by(neighbourhood_name) %>%
+  summarize(distinct_diameters = n_distinct(diameter))
+
+#Graphing: 7
+#Make a graph where it makes sense to customize the alpha transparency
+vancouver_trees %>%
+  ggplot(aes(x=neighbourhood_name, y=diameter)) + 
+  geom_point(alpha = 0.7) + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) + 
+  xlab("Neighbourhood Name") + 
+  ylab ("Diameter") + 
+  ggtitle ("Neighbourhood Name vs. Diameter")
+
+#This task does not help answer the research question. Though the alpha transparency is customized, it is still unclear if tree diameter varies across neighbourhoods as there are too many data points stacked on top of each other. 
+```
+
+2: Does a root barrier negatively impact the diameter of the tree? 
+```{r}
+#Summarizing: 1
+#Compute the *range*, *mean*, and *two other summary statistics* of **one numerical variable** across the groups of **one categorical variable** from your data.
+root_barrier_yes <- filter(vancouver_trees, root_barrier == "Y")
+root_barrier_no <- filter(vancouver_trees, root_barrier == "N")
+
+#range of diameters for trees with a root barrier 
+diameters_range<-range(root_barrier_yes$diameter)
+print(diameters_range)
+#mean of diameters for trees with a root barrier
+diameters_means<- mean(root_barrier_yes$diameter)
+print(diameters_means)
+#standard deviation of diameters for trees with a root barrier
+diameters_sd<- sd(root_barrier_yes$diameter)
+print(diameters_sd)
+#median diameter of trees with a root barrier
+diameters_median<- median(root_barrier_yes$diameter)
+print(diameters_median)
+
+#range of diameters for trees without a root barrier 
+diameters_range_wo<-range(root_barrier_no$diameter)
+print(diameters_range_wo)
+#mean of diameters for trees without a root barrier 
+diameters_means_wo<- mean(root_barrier_no$diameter)
+print(diameters_means_wo)
+#standard deviation of diameters for trees without a root barrier 
+diameters_sd_wo<- sd(root_barrier_no$diameter)
+print(diameters_sd_wo)
+#median diameter of trees without a root barrier 
+diameters_median_wo<- median(root_barrier_no$diameter)
+print(diameters_median_wo)
+
+#Graphing: 8
+#Create 3 histograms out of summarized variables, with each histogram having different sized bins. Pick the "best" one and explain why it is the best.
+ggplot(root_barrier_yes, aes(diameter)) + geom_histogram(bins = 10)
+ggplot(root_barrier_yes, aes(diameter)) + geom_histogram(bins = 25)
+ggplot(root_barrier_yes, aes(diameter)) + geom_histogram(bins = 40)
+#Three histograms are displayed, the histogram with bins=40 is best as it allows us to see the pattern of the data more clearly. 
+
+#This task does help answer the research question as the summary statistics give an overview of the range, mean, standard deviation and median for the diameter of trees with a root barrier and trees without a root barrier. Trees with a root barrier have a lower mean, standard deviation and median diameter than trees without a root barrier. The histogram shows a visual display of the summarized variables, it is right-skewed. 
+
+```
+
+3: Does a root barrier negatively impact the height of the tree? 
+```{r}
+#Summarizing: 2
+#Compute the number of observations for at least one of your categorical variables (height).
+root_barrier_yes$height_range_id <- as.factor(root_barrier_yes$height_range_id)
+summary(root_barrier_yes$height_range_id)
+
+root_barrier_no$height_range_id <- as.factor(root_barrier_no$height_range_id)
+summary(root_barrier_no$height_range_id)
+
+#Graphing: 5
+#Create a graph out of summarized variables that has at least two geom layers.
+vancouver_trees %>%
+  ggplot(aes(root_barrier, height_range_id)) + 
+           geom_boxplot() + 
+           geom_count() +  
+  xlab("Root Barrier") + 
+  ylab ("Height") + 
+  ggtitle ("Root Barrier vs. Height")
+
+#This task does help answer the research question as the summarizing exercise shows that there are more observations in greater height ranges for root_barrier_no compared to root_barrier_yes, meaning that there are more tall trees when root barriers are absent. The graphing exercise shows that root_barrier_no has a greater number of observations for all heights compared to root_barrier_yes. 
+```
+
+4: Does a curb negatively impact the diameter of the tree? 
+```{r}
+#Summarizing 1
+#Compute the *range*, *mean*, and *two other summary statistics* of **one numerical variable** across the groups of **one categorical variable** from your data.
+curb_yes <- filter(vancouver_trees, curb == "Y")
+curb_no <- filter(vancouver_trees, curb == "N")
+
+#range of diameters for trees with a curb
+diameters_range_curb<-range(curb_yes$diameter)
+print(diameters_range_curb)
+#mean of diameters for trees with a curb
+diameters_means_curb<- mean(curb_yes$diameter)
+print(diameters_means_curb)
+#standard deviation of diameters for trees with a curb
+diameters_sd_curb<- sd(curb_yes$diameter)
+print(diameters_sd_curb)
+#median diameter of trees with a curb
+diameters_median_curb<- median(curb_yes$diameter)
+print(diameters_median_curb)
+
+#range of diameters for trees without a curb
+diameters_range_wo_curb<-range(curb_no$diameter)
+print(diameters_range_wo_curb)
+#mean of diameters for trees without a curb
+diameters_means_wo_curb<- mean(curb_no$diameter)
+print(diameters_means_wo_curb)
+#standard deviation of diameters for trees without a curb 
+diameters_sd_wo_curb<- sd(curb_no$diameter)
+print(diameters_sd_wo_curb)
+#median diameter of trees without a curb
+diameters_median_wo_curb<- median(curb_no$diameter)
+print(diameters_median_wo_curb)
+
+#Graphing: 8
+#Create 3 histograms out of summarized variables, with each histogram having different sized bins. Pick the "best" one and explain why it is the best.
+ggplot(curb_yes, aes(diameter)) + geom_histogram(bins = 20)
+ggplot(curb_yes, aes(diameter)) + geom_histogram(bins = 40)
+ggplot(curb_yes, aes(diameter)) + geom_histogram(bins = 60)
+#Three histograms are displayed, the histogram with bins=60 is best as it allows us to see the pattern of the data more clearly. 
+
+#This task does help answer the research question as the summary statistics give an overview of the range, mean, standard deviation and median for the diameter of trees with a curb and trees without a curb. Trees with a curb have a lower mean, standard deviation and median diameter than trees without a curb. The histogram shows a visual display of the summarized variables, it is right-skewed. 
+
+```
+
 <!----------------------------------------------------------------------------->
 
 ### 1.2 (3 points)
@@ -180,7 +398,10 @@ Make sure it's clear what research question you are doing each operation for!
 Based on the operations that you've completed, how much closer are you to answering your research questions? Think about what aspects of your research questions remain unclear. Can your research questions be refined, now that you've investigated your data a bit more? Which research questions are yielding interesting results?
 
 <!-------------------------- Start your work below ---------------------------->
-
+Research question 1: I am closer to answering my research question however, due to the large number of neighbourhoods, I could refine my research question to focus in on a few neighbourhoods instead. 
+For research question 2: I answered how the presence of a root barrier negatively impacts the diameter of the tree as trees with a root barrier have a lower mean, standard deviation and median diameter than trees without a root barrier.
+For research question 3: I answered how the presence of a root barrier negatively impacts the height of the tree as there are more observations in greater height ranges for root_barrier_no compared to root_barrier_yes, meaning that there are more tall trees when root barriers are absent. 
+For research question 4: I answered how the presence of a curb negatively impacts the diameter of the tree as trees with a curb have a lower mean, standard deviation and median diameter than trees without a curb. I could refine this research question by looking at both diameter and height of the tree to gain a more comprehensive picture of the tree size. 
 <!----------------------------------------------------------------------------->
 
 ### Attribution
