@@ -1,6 +1,6 @@
 ---
 title: "Mini Data Analysis Milestone 2"
-output: html_document
+output: github_document
 ---
 
 *To complete this milestone, you can edit [this `.rmd` file](https://raw.githubusercontent.com/UBC-STAT/stat545.stat.ubc.ca/master/content/mini-project/mini-project-2.Rmd) directly. Fill in the sections that are commented out with `<!--- start your work here--->`. When you are done, make sure to knit to an `.md` file by changing the output in the YAML header to `github_document`, before submitting a tagged release on canvas.*
@@ -42,6 +42,7 @@ Begin by loading your data and the tidyverse package below:
 ```{r, message = FALSE}
 library(datateachr) # <- might contain the data you picked!
 library(tidyverse)
+library(broom)
 ```
 
 # Task 1: Tidy your data (15 points)
@@ -61,6 +62,10 @@ A reminder of the definition of *tidy* data:
 Based on the definition above, can you identify if your data is tidy or untidy? Go through all your columns, or if you have \>8 variables, just pick 8, and explain whether the data is untidy or tidy.
 
 <!--------------------------- Start your work below --------------------------->
+```{r}
+head(vancouver_trees)
+#The data is tidy as each row is an observation, each column is a variable and each cell is a value. 
+```
 
 <!----------------------------------------------------------------------------->
 
@@ -74,6 +79,37 @@ Be sure to explain your reasoning for this task. Show us the "before" and "after
 
 <!--------------------------- Start your work below --------------------------->
 
+```{r}
+#Untidying the data
+#1) selecting 3 variables to work with for this step
+vancouver_trees2 <-
+    vancouver_trees %>%
+    select(tree_id, common_name, diameter)
+#2) untidy the data
+untidy_data <- 
+    vancouver_trees2 %>%
+    pivot_wider(names_from = common_name, 
+                values_from = diameter)
+
+untidy_data
+```
+
+
+```{r}
+#Re-tidying the data
+retidy_data <-
+   untidy_data %>%
+   pivot_longer(cols = c(-tree_id), 
+                names_to = "common_name", 
+                values_to = "diameter", 
+                values_drop_na = TRUE)
+
+retidy_data
+
+#Retidying the data is imperative as having the "diameter" variable as the value results in many NAs displayed in the table, making it difficult to read
+```
+
+
 <!----------------------------------------------------------------------------->
 
 ### 2.3 (7.5 points)
@@ -82,8 +118,8 @@ Now, you should be more familiar with your data, and also have made progress in 
 
 <!-------------------------- Start your work below ---------------------------->
 
-1.  *FILL_THIS_IN*
-2.  *FILL_THIS_IN*
+1.  How have tree species planted changed over time? 
+2.  Does a root barrier negatively impact the diameter of the tree? 
 
 <!----------------------------------------------------------------------------->
 
@@ -91,11 +127,43 @@ Explain your decision for choosing the above two research questions.
 
 <!--------------------------- Start your work below --------------------------->
 
+The above two research questions were chosen as they both interest me. The first question touches upon the change in biodiversity over a period of time and the second question touches upon urban tree planting strategies. 
+
 <!----------------------------------------------------------------------------->
 
 Now, try to choose a version of your data that you think will be appropriate to answer these 2 questions. Use between 4 and 8 functions that we've covered so far (i.e. by filtering, cleaning, tidy'ing, dropping irrelevant columns, etc.).
 
 <!--------------------------- Start your work below --------------------------->
+
+```{r}
+# To simply the analysis for the first research question, I am going to include only the top 5 planted trees species
+species_top5 <- vancouver_trees %>%
+    group_by(common_name) %>%
+    summarise(n=n()) %>%
+                  arrange(desc(n), .by_group = TRUE)
+```
+
+```{r}
+# I am mainly interested in the year for the date_planted variable, therefore I am going to extract that value and create a new column for it
+
+#select applicable variables for research questions
+vancouver_trees3 <- vancouver_trees %>%
+    select(tree_id, common_name, date_planted, root_barrier, diameter) 
+
+#extracting year and creating column
+year <- as.numeric(format(vancouver_trees3$date_planted, "%Y"))
+vancouver_trees3$year_planted <- year
+vancouver_trees4 <- vancouver_trees3 %>%
+    select(-date_planted) 
+```
+
+```{r}
+# Creating final data set for research questions
+vancouver_trees5 <- vancouver_trees4 %>%
+    arrange(year_planted) %>% 
+    filter(common_name %in% c("KWANZAN FLOWERING CHERRY", "PISSARD PLUM", "NORWAY MAPLE", "CRIMEAN LINDEN", "PYRAMIDAL EUROPEAN HORNBEAM")) 
+
+```
 
 <!----------------------------------------------------------------------------->
 
@@ -106,6 +174,15 @@ For this exercise, you'll be choosing two of the three tasks below -- both tasks
 But first, tasks 1 and 2 below ask you to modify a plot you made in a previous milestone. The plot you choose should involve plotting across at least three groups (whether by facetting, or using an aesthetic like colour). Place this plot below (you're allowed to modify the plot if you'd like). If you don't have such a plot, you'll need to make one. Place the code for your plot below.
 
 <!-------------------------- Start your work below ---------------------------->
+```{r}
+# Plot modified from Milestone 1
+vancouver_trees5 %>%
+  ggplot(aes(root_barrier, diameter)) + 
+             geom_boxplot() + 
+             facet_wrap(vars(common_name)) + 
+    xlab("Root Barrier") + 
+    ylab("Diameter")
+```
 
 <!----------------------------------------------------------------------------->
 
@@ -128,13 +205,39 @@ Now, choose two of the following tasks.
 
 <!-------------------------- Start your work below ---------------------------->
 
-**Task Number**: FILL_THIS_IN
+**Task Number**: 1
+```{r}
+# Reorder the factor "root barrier"
+vancouver_trees5 %>%
+  mutate(root_barrier = fct_reorder(root_barrier, diameter)) %>%
+  ggplot(aes(root_barrier, diameter)) + 
+             geom_boxplot() + 
+             facet_wrap(vars(common_name)) + 
+    xlab("Root Barrier") + 
+    ylab("Diameter")
+
+# The columns of root barrier were reordered to display Y (yes) first then N (no) rather than alphabetical order. In English and in common speech, word pairs are usually affirmative first and then negative. 
+```
 
 <!----------------------------------------------------------------------------->
 
+
 <!-------------------------- Start your work below ---------------------------->
 
-**Task Number**: FILL_THIS_IN
+**Task Number**: 2
+```{r}
+# Collapse the pissard plum, norway maple, crimean linden and pyramidal european hornbeam into one for easier comparison. 
+vancouver_trees5 %>%
+  mutate(root_barrier = fct_reorder(root_barrier, diameter)) %>%
+  mutate(common_name = fct_lump_n(common_name, n=1)) %>%
+  ggplot(aes(root_barrier, diameter)) + 
+             geom_boxplot() + 
+             facet_wrap(vars(common_name)) + 
+    xlab("Root Barrier") + 
+    ylab("Diameter")
+
+# This grouping was chosen as kwanzan flowering cherry is the top planted tree species and grouping the other 4 into one allows for easier comparison. Also, categories(factors) with extremely low frequency may cause statistical concerns for more complicated analyses. 
+```
 
 <!----------------------------------------------------------------------------->
 
@@ -146,9 +249,9 @@ Pick a research question, and pick a variable of interest (we'll call it "Y") th
 
 <!-------------------------- Start your work below ---------------------------->
 
-**Research Question**: FILL_THIS_IN
+**Research Question**: How have tree species planted changed over time? 
 
-**Variable of interest**: FILL_THIS_IN
+**Variable of interest**: Proportion of kwanzan flowering cherry trees planted in each year
 
 <!----------------------------------------------------------------------------->
 
@@ -164,6 +267,21 @@ Fit a model or run a hypothesis test that provides insight on this variable with
 
 <!-------------------------- Start your work below ---------------------------->
 
+```{r}
+#Calculation of proportion of kwanzan flowering cherry trees planted in each year
+kfc_proportion <- vancouver_trees5 %>%
+    filter(common_name == "KWANZAN FLOWERING CHERRY") %>%
+    group_by(year_planted) %>%
+    summarize(n=n()) %>%
+    drop_na() %>%
+    mutate(prop = n/sum(n)*100)
+
+#Linear model for research question
+kfc_model <- lm(prop~year_planted, data = kfc_proportion)
+kfc_model
+
+```
+
 <!----------------------------------------------------------------------------->
 
 ## 2.2 (5 points)
@@ -175,6 +293,11 @@ Produce something relevant from your fitted model: either predictions on Y, or a
 -   Obtain your results using the `broom` package if possible. If your model is not compatible with the broom function you're needing, then you can obtain your results by some other means, but first indicate which broom function is not compatible.
 
 <!-------------------------- Start your work below ---------------------------->
+```{r}
+tidy(kfc_model)
+
+# I chose to produce a tibble to view the p-value, standard error and estimate of my fitted model. 
+```
 
 <!----------------------------------------------------------------------------->
 
@@ -190,6 +313,9 @@ Take a summary table that you made from Milestone 1 (Task 4.2), and write it as 
 -   **Reproducibility criteria**: You should be able to delete the csv file, and remake it simply by knitting this Rmd file.
 
 <!-------------------------- Start your work below ---------------------------->
+```{r}
+
+```
 
 <!----------------------------------------------------------------------------->
 
@@ -200,6 +326,9 @@ Write your model object from Task 3 to an R binary file (an RDS), and load it ag
 -   The same robustness and reproducibility criteria as in 3.1 apply here.
 
 <!-------------------------- Start your work below ---------------------------->
+```{r}
+
+```
 
 <!----------------------------------------------------------------------------->
 
